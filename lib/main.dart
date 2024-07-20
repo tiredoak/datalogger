@@ -1,13 +1,17 @@
 // ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
 
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:path_provider/path_provider.dart';
+
 import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
 
 void main() => runApp(const MyApp());
 
@@ -16,7 +20,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return  const MaterialApp(
+    return const MaterialApp(
       debugShowCheckedModeBanner: false,
       home: HomeScreen(),
     );
@@ -32,10 +36,18 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
+  StreamSubscription<UserAccelerometerEvent>? _userAccelerometerEvent;
+  StreamSubscription<GyroscopeEvent>? _gyroscopeEvent;
+  StreamSubscription<MagnetometerEvent>? _magnetometerEvent;
+  StreamSubscription<Position>? _location;
+
+  DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+
+  Map<String, dynamic> deviceInfoData = {};
   Position? _currentPosition;
   bool _isRecording = false;
-  final List<String> _logData = [];
-
+  final List<Map<String, dynamic>> _logData = [];
+  bool isLoading = true;
   @override
   void initState() {
     super.initState();
@@ -43,12 +55,42 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _checkPermissions() async {
-    PermissionStatus statusLocation = await Permission.location.request();
-    //  PermissionStatus statusSensor= await Permission.sensors.request();
-    print(statusLocation.name);
-    //  print(statusSensor.name);
+    if (Platform.isIOS) {
+      IosDeviceInfo into = await deviceInfo.iosInfo;
+      setState(() {
+        deviceInfoData = into.data;
+      });
+    } else {
+      AndroidDeviceInfo into = await deviceInfo.androidInfo;
+      setState(() {
+        deviceInfoData = into.data;
+      });
+    }
+    PermissionStatus permissionStatusLocation =
+        await Permission.location.request();
+    PermissionStatus mission = await Permission.storage.request();
+    print(mission.name);
+    PermissionStatus permissionStatusStoarge =
+        await Permission.manageExternalStorage.request();
+
+    if (permissionStatusLocation.isPermanentlyDenied) {
+      openAppSettings();
+    } else if (Platform.isAndroid &&
+        permissionStatusStoarge.isPermanentlyDenied) {
+      openAppSettings();
+    }
+
+    Future.delayed(const Duration(seconds: 3), () {
+      setState(() {
+        isLoading = false;
+      });
+    });
   }
 
+  AccelerometerEvent? accelerometerEvent;
+  UserAccelerometerEvent? userAcceelerometerEvent;
+  GyroscopeEvent? gyroscopeEvent;
+  MagnetometerEvent? magnetometerEvet;
   Timer? timer;
   void _startRecording() async {
     setState(() {
@@ -56,44 +98,120 @@ class _HomeScreenState extends State<HomeScreen> {
       _logData.clear();
     });
 
-    // _accelerometerSubscription = accelerometerEventStream().listen(
-    //   (AccelerometerEvent event) {
-    //     print(event);
-    //   },
-    //   onError: (error) {
-    //     print(error);
-    //     // Logic to handle error
-    //     // Needed for Android in case sensor is not available
-    //   },
-    //   cancelOnError: true,
-    // );
-    Geolocator.getPositionStream().listen((Position position) {
-      _currentPosition = position;
+    _location = Geolocator.getPositionStream().listen((Position position) {
+      setState(() {
+        _currentPosition = position;
+      });
     });
-    DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+    _accelerometerSubscription = accelerometerEventStream().listen(
+      (AccelerometerEvent event) {
+        accelerometerEvent = event;
+      },
+      onError: (error) {
+        // Logic to handle error
+        // Needed for Android in case sensor is not available
+      },
+      cancelOnError: true,
+    );
+    _userAccelerometerEvent = userAccelerometerEventStream().listen(
+      (UserAccelerometerEvent event) {
+        userAcceelerometerEvent = event;
+      },
+      onError: (error) {
+        // Logic to handle error
+        // Needed for Android in case sensor is not available
+      },
+      cancelOnError: true,
+    );
+// [UserAccelerometerEvent (x: 0.0, y: 0.0, z: 0.0)]
 
-    IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-    timer = Timer.periodic(const Duration(seconds: 1), (Timer timer) {
-      _logAccelerometerData(iosInfo.data);
-    });
+    _gyroscopeEvent = gyroscopeEventStream().listen(
+      (GyroscopeEvent event) {
+        gyroscopeEvent = event;
+      },
+      onError: (error) {
+        // Logic to handle error
+        // Needed for Android in case sensor is not available
+      },
+      cancelOnError: true,
+    );
+// [GyroscopeEvent (x: 0.0, y: 0.0, z: 0.0)]
+
+    _magnetometerEvent = magnetometerEventStream().listen(
+      (MagnetometerEvent event) {
+        print("Jelllo");
+        magnetometerEvet = event;
+        _logAccelerometerData(deviceInfoData, accelerometerEvent,
+            userAcceelerometerEvent, gyroscopeEvent, magnetometerEvet);
+      },
+      onError: (error) {
+        // Logic to handle error
+        // Needed for Android in case sensor is not available
+      },
+      cancelOnError: true,
+    );
   }
 
-  void _logAccelerometerData(Map<String, dynamic> map) {
+  var uuid = const Uuid();
+
+  void _logAccelerometerData(
+      Map<String, dynamic> map,
+      AccelerometerEvent? event,
+      UserAccelerometerEvent? userEvent,
+      GyroscopeEvent? gyroEvent,
+      MagnetometerEvent? magnetometerEvent) {
     final timestamp = DateTime.now().toIso8601String();
 
     final latitude = _currentPosition?.latitude ?? 0.0;
     final longitude = _currentPosition?.longitude ?? 0.0;
 
-    final logEntry =
-        'Timestamp: $timestamp, Device Info: $map, Latitude: $latitude,Longiture: $longitude';
+    Map<String, dynamic> logEntryData = {
+      "Timestamp": timestamp,
+      "uuid": uuid.v4(),
+      "Device Info": map,
+      "Latitude": latitude,
+      "Longitude": longitude,
+      "AccelerometerEvent": event == null
+          ? {}
+          : {
+              "X": event.x,
+              "Y": event.y,
+              "Z": event.z,
+            },
+      "UserAccelerometerEvent": userEvent == null
+          ? {}
+          : {
+              "X": userEvent.x,
+              "Y": userEvent.y,
+              "Z": userEvent.z,
+            },
+      "GyroscopeEvent": gyroEvent == null
+          ? {}
+          : {
+              "X": gyroEvent.x,
+              "Y": gyroEvent.y,
+              "Z": gyroEvent.z,
+            },
+      "MagnetometerEvent": magnetometerEvent == null
+          ? {}
+          : {
+              "X": magnetometerEvent.x,
+              "Y": magnetometerEvent.y,
+              "Z": magnetometerEvent.z,
+            },
+    };
     setState(() {
-      _logData.add(logEntry);
+      _logData.add(logEntryData);
     });
   }
 
   void _stopRecording() {
     _accelerometerSubscription?.cancel();
-    timer!.cancel();
+    _userAccelerometerEvent?.cancel();
+    _gyroscopeEvent?.cancel();
+    _magnetometerEvent?.cancel();
+    _location?.cancel();
+
     _saveLogData();
     setState(() {
       _isRecording = false;
@@ -101,20 +219,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _saveLogData() async {
-    print("Hello");
-    for (var element in _logData) {
-      print(element);
-    }
-    // final directory = await getApplicationDocumentsDirectory();
-    // final filePath = '${directory.path}/accelerometer_log.csv';
-    // final file = File(filePath);
+    String jsonString = jsonEncode(_logData);
 
-    // final logFileData = 'Timestamp,Device Info,X,Y,Z,Latitude,Longitude\n${_logData.join('\n')}';
-    // await file.writeAsString(logFileData);
-
-    // ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-    //   content: Text('Log data saved to $filePath'),
-    // ));
+    await writeJson(jsonString);
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Log data saved to download '),
+    ));
   }
 
   @override
@@ -124,10 +234,12 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Accelerometer Logger'),
       ),
       body: Center(
-        child: ElevatedButton(
-          onPressed: _isRecording ? _stopRecording : _startRecording,
-          child: Text(_isRecording ? 'Stop Recording' : 'Record'),
-        ),
+        child: isLoading
+            ? const CircularProgressIndicator()
+            : ElevatedButton(
+                onPressed: _isRecording ? _stopRecording : _startRecording,
+                child: Text(_isRecording ? 'Stop Recording' : 'Record'),
+              ),
       ),
     );
   }
@@ -135,6 +247,38 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _accelerometerSubscription?.cancel();
+    _gyroscopeEvent?.cancel();
+    _magnetometerEvent?.cancel();
+    _userAccelerometerEvent?.cancel();
+    _location?.cancel();
     super.dispose();
+  }
+
+  Future<File> get _localFileIos async {
+    final directory = await getApplicationDocumentsDirectory();
+
+    final dir = Directory(directory.path);
+    if (!(await dir.exists())) {
+      await dir.create(recursive: true);
+    }
+    String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+    return File('${dir.path}/logdata_$timestamp.json');
+  }
+
+  Future<File> get _localFileAndroid async {
+    Directory dir = Directory('/storage/emulated/0/Download');
+
+    if (!(await dir.exists())) {
+      await dir.create(recursive: true);
+    }
+    String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+    return File('${dir.path}/logdata_$timestamp.json');
+  }
+
+  Future<File> writeJson(String jsonString) async {
+    final file = await (Platform.isIOS ? _localFileIos : _localFileAndroid);
+    return file.writeAsString(jsonString);
   }
 }

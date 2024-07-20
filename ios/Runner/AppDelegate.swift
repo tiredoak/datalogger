@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import MobileCoreServices
 
 @UIApplicationMain
 @objc class AppDelegate: FlutterAppDelegate {
