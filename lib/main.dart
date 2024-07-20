@@ -48,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isRecording = false;
   final List<Map<String, dynamic>> _logData = [];
   bool isLoading = true;
+  String _rideUUID = const Uuid().v4(); // UUID for the entire ride
+
   @override
   void initState() {
     super.initState();
@@ -92,10 +94,12 @@ class _HomeScreenState extends State<HomeScreen> {
   GyroscopeEvent? gyroscopeEvent;
   MagnetometerEvent? magnetometerEvet;
   Timer? timer;
+
   void _startRecording() async {
     setState(() {
       _isRecording = true;
       _logData.clear();
+      _rideUUID = const Uuid().v4();  // Generate a new UUID for each ride
     });
 
     _location = Geolocator.getPositionStream().listen((Position position) {
@@ -123,7 +127,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       cancelOnError: true,
     );
-// [UserAccelerometerEvent (x: 0.0, y: 0.0, z: 0.0)]
 
     _gyroscopeEvent = gyroscopeEventStream().listen(
       (GyroscopeEvent event) {
@@ -135,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       cancelOnError: true,
     );
-// [GyroscopeEvent (x: 0.0, y: 0.0, z: 0.0)]
 
     _magnetometerEvent = magnetometerEventStream().listen(
       (MagnetometerEvent event) {
@@ -152,8 +154,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  var uuid = const Uuid();
-
   void _logAccelerometerData(
       Map<String, dynamic> map,
       AccelerometerEvent? event,
@@ -167,7 +167,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Map<String, dynamic> logEntryData = {
       "Timestamp": timestamp,
-      "uuid": uuid.v4(),
+      "uuid": _rideUUID,  // Use the UUID for the entire ride
       "Device Info": map,
       "Latitude": latitude,
       "Longitude": longitude,
