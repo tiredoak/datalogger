@@ -293,8 +293,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<File> get _localFileIos async {
     final directory = await getApplicationDocumentsDirectory();
-
-    final dir = Directory(directory.path);
+    final qualityDir = _quality == 0 ? 'bad_roads' : 'good_roads';
+    final dir = Directory('${directory.path}/$qualityDir');
     if (!(await dir.exists())) {
       await dir.create(recursive: true);
     }
@@ -304,8 +304,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<File> get _localFileAndroid async {
-    Directory dir = Directory('/storage/emulated/0/Download');
-
+    Directory baseDir = Directory('/storage/emulated/0/Download');
+    final qualityDir = _quality == 0 ? 'bad_roads' : 'good_roads';
+    final dir = Directory('${baseDir.path}/$qualityDir');
     if (!(await dir.exists())) {
       await dir.create(recursive: true);
     }
