@@ -49,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _logData = [];
   bool isLoading = true;
   String _rideUUID = const Uuid().v4(); // UUID for the entire ride
+  int? _quality; // Variable to store road quality
 
   @override
   void initState() {
@@ -96,10 +97,17 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? timer;
 
   void _startRecording() async {
+    if (_quality == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Please select road quality before recording.'),
+      ));
+      return;
+    }
+
     setState(() {
       _isRecording = true;
       _logData.clear();
-      _rideUUID = const Uuid().v4();  // Generate a new UUID for each ride
+      _rideUUID = const Uuid().v4(); // Generate a new UUID for each ride
     });
 
     _location = Geolocator.getPositionStream().listen((Position position) {
@@ -107,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentPosition = position;
       });
     });
-    _accelerometerSubscription = accelerometerEventStream().listen(
+    _accelerometerSubscription = accelerometerEvents.listen(
       (AccelerometerEvent event) {
         accelerometerEvent = event;
       },
@@ -117,7 +125,7 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       cancelOnError: true,
     );
-    _userAccelerometerEvent = userAccelerometerEventStream().listen(
+    _userAccelerometerEvent = userAccelerometerEvents.listen(
       (UserAccelerometerEvent event) {
         userAcceelerometerEvent = event;
       },
@@ -128,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
       cancelOnError: true,
     );
 
-    _gyroscopeEvent = gyroscopeEventStream().listen(
+    _gyroscopeEvent = gyroscopeEvents.listen(
       (GyroscopeEvent event) {
         gyroscopeEvent = event;
       },
@@ -139,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
       cancelOnError: true,
     );
 
-    _magnetometerEvent = magnetometerEventStream().listen(
+    _magnetometerEvent = magnetometerEvents.listen(
       (MagnetometerEvent event) {
         print("Jelllo");
         magnetometerEvet = event;
@@ -167,7 +175,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     Map<String, dynamic> logEntryData = {
       "Timestamp": timestamp,
-      "uuid": _rideUUID,  // Use the UUID for the entire ride
+      "uuid": _rideUUID, // Use the UUID for the entire ride
+      "Quality": _quality, // Include the quality variable
       "Device Info": map,
       "Latitude": latitude,
       "Longitude": longitude,
@@ -236,9 +245,37 @@ class _HomeScreenState extends State<HomeScreen> {
       body: Center(
         child: isLoading
             ? const CircularProgressIndicator()
-            : ElevatedButton(
-                onPressed: _isRecording ? _stopRecording : _startRecording,
-                child: Text(_isRecording ? 'Stop Recording' : 'Record'),
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _quality = 0;
+                          });
+                        },
+                        child: const Text('Bad Road'),
+                      ),
+                      const SizedBox(width: 20),
+                      ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            _quality = 1;
+                          });
+                        },
+                        child: const Text('Good Road'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _isRecording ? _stopRecording : _startRecording,
+                    child: Text(_isRecording ? 'Stop Recording' : 'Record'),
+                  ),
+                ],
               ),
       ),
     );
