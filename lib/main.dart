@@ -47,6 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _logData = [];
   bool isLoading = true;
   String _rideUUID = const Uuid().v4(); // UUID for the entire ride
+  int _countdown = 0; // Countdown variable
 
   @override
   void initState() {
@@ -92,6 +93,23 @@ class _HomeScreenState extends State<HomeScreen> {
   GyroscopeEvent? gyroscopeEvent;
   MagnetometerEvent? magnetometerEvet;
   Timer? timer;
+
+  void _startCountdown() {
+    setState(() {
+      _countdown = 3;
+    });
+
+    Timer.periodic(const Duration(seconds: 1), (Timer timer) {
+      setState(() {
+        if (_countdown == 0) {
+          timer.cancel();
+          _startRecording();
+        } else {
+          _countdown--;
+        }
+      });
+    });
+  }
 
   void _startRecording() async {
     setState(() {
@@ -237,9 +255,17 @@ class _HomeScreenState extends State<HomeScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (_countdown > 0)
+                    Text(
+                      '$_countdown',
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: _isRecording ? _stopRecording : _startRecording,
+                    onPressed: _isRecording ? _stopRecording : _startCountdown,
                     child: Text(_isRecording ? 'Stop Recording' : 'Record'),
                     style: ElevatedButton.styleFrom(
                       textStyle: const TextStyle(fontSize: 48),
