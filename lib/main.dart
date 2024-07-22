@@ -240,12 +240,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _isRecording ? _stopRecording : _startRecording,
-                    style: ElevatedButton.styleFrom(
-                      textStyle: const TextStyle(fontSize: 24),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 20, horizontal: 40),
-                    ),
                     child: Text(_isRecording ? 'Stop Recording' : 'Record'),
+                    style: ElevatedButton.styleFrom(
+                      textStyle: const TextStyle(fontSize: 48),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 60, horizontal: 100),
+                    ),
                   ),
                 ],
               ),
