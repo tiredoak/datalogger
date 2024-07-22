@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously, library_private_types_in_public_api
-
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -49,7 +47,6 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Map<String, dynamic>> _logData = [];
   bool isLoading = true;
   String _rideUUID = const Uuid().v4(); // UUID for the entire ride
-  int? _quality; // Variable to store road quality
 
   @override
   void initState() {
@@ -97,13 +94,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Timer? timer;
 
   void _startRecording() async {
-    if (_quality == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Please select road quality before recording.'),
-      ));
-      return;
-    }
-
     setState(() {
       _isRecording = true;
       _logData.clear();
@@ -176,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
     Map<String, dynamic> logEntryData = {
       "Timestamp": timestamp,
       "uuid": _rideUUID, // Use the UUID for the entire ride
-      "Quality": _quality, // Include the quality variable
       "Device Info": map,
       "Latitude": latitude,
       "Longitude": longitude,
@@ -248,31 +237,14 @@ class _HomeScreenState extends State<HomeScreen> {
             : Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _quality = 0;
-                          });
-                        },
-                        child: const Text('Bad Road'),
-                      ),
-                      const SizedBox(width: 20),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _quality = 1;
-                          });
-                        },
-                        child: const Text('Good Road'),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _isRecording ? _stopRecording : _startRecording,
+                    style: ElevatedButton.styleFrom(
+                      textStyle: const TextStyle(fontSize: 24),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 20, horizontal: 40),
+                    ),
                     child: Text(_isRecording ? 'Stop Recording' : 'Record'),
                   ),
                 ],
@@ -293,8 +265,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<File> get _localFileIos async {
     final directory = await getApplicationDocumentsDirectory();
-    final qualityDir = _quality == 0 ? 'bad_roads' : 'good_roads';
-    final dir = Directory('${directory.path}/$qualityDir');
+    final dir = Directory('${directory.path}/ride_logs');
     if (!(await dir.exists())) {
       await dir.create(recursive: true);
     }
@@ -305,8 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<File> get _localFileAndroid async {
     Directory baseDir = Directory('/storage/emulated/0/Download');
-    final qualityDir = _quality == 0 ? 'bad_roads' : 'good_roads';
-    final dir = Directory('${baseDir.path}/$qualityDir');
+    final dir = Directory('${baseDir.path}/ride_logs');
     if (!(await dir.exists())) {
       await dir.create(recursive: true);
     }
