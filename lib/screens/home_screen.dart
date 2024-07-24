@@ -6,6 +6,7 @@ import 'package:record_data/services/permission_service.dart';
 import 'package:record_data/services/sensor_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
+import 'package:record_data/services/timer_service.dart'; // Import the new timer service
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _logService = LoggingService();
   final _permissionService = PermissionService();
   late SensorService _sensorService;
+  final TimerService _timerService =
+      TimerService(); // Initialize the timer service
 
   bool _isRecording = false;
   bool _isLoading = true;
@@ -65,6 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
       _rideUUID = const Uuid().v4();
     });
 
+    _timerService.startTimer((elapsedSeconds) {
+      setState(() {});
+    });
+
     _sensorService.startListening((logEntry) {
       setState(() {
         _logService.logData(logEntry);
@@ -74,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _stopRecording() async {
     _sensorService.stopListening();
+    _timerService.stopTimer();
 
     setState(() {
       _isRecording = false;
@@ -116,6 +124,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  if (_isRecording)
+                    Text(
+                      'Elapsed time: ${_timerService.elapsedSeconds} s',
+                      style: const TextStyle(
+                        fontSize: 24,
                       ),
                     ),
                   const SizedBox(height: 20),
