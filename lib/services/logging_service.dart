@@ -13,11 +13,15 @@ class LoggingService {
     _logData.clear();
   }
 
-  Future<void> saveLog(String rideUUID, int? roadQuality, String? roadType) async {
+  Future<void> saveLog(String rideUUID, int? roadQuality, String? roadType,
+      String? bike, String? mount, String? mountPosition) async {
     for (var entry in _logData) {
       entry['uuid'] = rideUUID;
       entry['road_quality'] = roadQuality ?? 0;
       entry['road_type'] = roadType ?? 'unknown';
+      entry['bike'] = bike ?? 'Brompton';
+      entry['mount'] = mount ?? 'good';
+      entry['mount_position'] = mountPosition ?? 'vertical';
     }
 
     String jsonString = jsonEncode(_logData);
