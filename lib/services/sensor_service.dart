@@ -27,24 +27,25 @@ class SensorService {
     });
 
     _accelerometerSubscription =
-        accelerometerEvents.listen((AccelerometerEvent event) {
+        accelerometerEventStream().listen((AccelerometerEvent event) {
       _accelerometerEvent = event;
       _logSensorData(onData);
     });
 
     _userAccelerometerSubscription =
-        userAccelerometerEvents.listen((UserAccelerometerEvent event) {
+        userAccelerometerEventStream().listen((UserAccelerometerEvent event) {
       _userAccelerometerEvent = event;
       _logSensorData(onData);
     });
 
-    _gyroscopeSubscription = gyroscopeEvents.listen((GyroscopeEvent event) {
+    _gyroscopeSubscription =
+        gyroscopeEventStream().listen((GyroscopeEvent event) {
       _gyroscopeEvent = event;
       _logSensorData(onData);
     });
 
     _magnetometerSubscription =
-        magnetometerEvents.listen((MagnetometerEvent event) {
+        magnetometerEventStream().listen((MagnetometerEvent event) {
       _magnetometerEvent = event;
       _logSensorData(onData);
     });
