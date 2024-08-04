@@ -4,9 +4,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:record_data/services/logging_service.dart';
 import 'package:record_data/services/permission_service.dart';
 import 'package:record_data/services/sensor_service.dart';
+import 'package:record_data/services/timer_service.dart';
+import 'package:record_data/services/location_service.dart'; // Import the new location service
 import 'package:uuid/uuid.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
-import 'package:record_data/services/timer_service.dart'; // Import the new timer service
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,6 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _logService = LoggingService();
   final _permissionService = PermissionService();
+  final _locationService = LocationService(); // Initialize the location service
   late SensorService _sensorService;
   final TimerService _timerService =
       TimerService(); // Initialize the timer service
@@ -26,8 +28,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   int _countdown = 0;
   String _rideUUID = const Uuid().v4();
+  String? _street = 'Unknown';
+  String? _city = 'Unknown';
 
   String? _bike = 'Brompton';
+  Timer? _locationTimer;
 
   @override
   void initState() {
@@ -76,11 +81,31 @@ class _HomeScreenState extends State<HomeScreen> {
         _logService.logData(logEntry);
       });
     });
+
+    _startLocationUpdates();
+  }
+
+  void _startLocationUpdates() {
+    _locationTimer =
+        Timer.periodic(const Duration(seconds: 5), (Timer timer) async {
+      Position position = await Geolocator.getCurrentPosition();
+      try {
+        final locationData = await _locationService.getStreetAndCity(
+            position.latitude, position.longitude);
+        setState(() {
+          _street = locationData['street'];
+          _city = locationData['city'];
+        });
+      } catch (e) {
+        // Handle any errors
+      }
+    });
   }
 
   void _stopRecording() async {
     _sensorService.stopListening();
     _timerService.stopTimer();
+    _locationTimer?.cancel();
 
     setState(() {
       _isRecording = false;
@@ -141,6 +166,20 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     child: Text(_isRecording ? 'Stop Recording' : 'Record'),
                   ),
+                  const SizedBox(height: 20),
+                  if (_isRecording)
+                    Column(
+                      children: [
+                        Text(
+                          'Street: $_street',
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                        Text(
+                          'City: $_city',
+                          style: const TextStyle(fontSize: 24),
+                        ),
+                      ],
+                    ),
                 ],
               ),
       ),
@@ -150,6 +189,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _sensorService.dispose();
+    _locationTimer?.cancel();
     super.dispose();
   }
 }
