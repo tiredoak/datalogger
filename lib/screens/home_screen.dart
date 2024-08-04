@@ -5,7 +5,7 @@ import 'package:record_data/services/logging_service.dart';
 import 'package:record_data/services/permission_service.dart';
 import 'package:record_data/services/sensor_service.dart';
 import 'package:record_data/services/timer_service.dart';
-import 'package:record_data/services/location_service.dart'; // Import the new location service
+import 'package:record_data/services/location_service.dart';
 import 'package:uuid/uuid.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
 
@@ -19,10 +19,9 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _logService = LoggingService();
   final _permissionService = PermissionService();
-  final _locationService = LocationService(); // Initialize the location service
+  final _locationService = LocationService();
   late SensorService _sensorService;
-  final TimerService _timerService =
-      TimerService(); // Initialize the timer service
+  final TimerService _timerService = TimerService();
 
   bool _isRecording = false;
   bool _isLoading = true;
@@ -96,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _street = locationData['street'];
           _city = locationData['city'];
         });
+        _logService.logStreetData(_street!, _city!);
       } catch (e) {
         // Handle any errors
       }
@@ -111,20 +111,23 @@ class _HomeScreenState extends State<HomeScreen> {
       _isRecording = false;
     });
 
+    await _logService.saveLog(_rideUUID, _bike);
+    await _logService.saveStreetData(_rideUUID);
+
     final result = await showRatingDialog(context);
     if (result != null) {
       setState(() {
         _bike = result['bike'];
       });
       await _logService.saveLog(_rideUUID, _bike);
-      _showSnackbar();
+      _showSnackbar(_logService.uniqueStreetsCount);
     }
   }
 
-  void _showSnackbar() {
+  void _showSnackbar(int uniqueStreets) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Log data saved to file'),
+      SnackBar(
+        content: Text('You collected $uniqueStreets streets'),
       ),
     );
   }
