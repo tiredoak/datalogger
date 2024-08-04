@@ -27,11 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _countdown = 0;
   String _rideUUID = const Uuid().v4();
 
-  int? _roadQuality;
-  String? _roadType;
   String? _bike = 'Brompton';
-  String? _mount = 'good';
-  String? _mountPosition = 'vertical';
 
   @override
   void initState() {
@@ -90,17 +86,12 @@ class _HomeScreenState extends State<HomeScreen> {
       _isRecording = false;
     });
 
-    final result = await showRatingDialog(context, _roadQuality, _roadType);
+    final result = await showRatingDialog(context);
     if (result != null) {
       setState(() {
-        _roadQuality = result['roadQuality'];
-        _roadType = result['roadType'];
         _bike = result['bike'];
-        _mount = result['mount'];
-        _mountPosition = result['mountPosition'];
       });
-      await _logService.saveLog(
-          _rideUUID, _roadQuality, _roadType, _bike, _mount, _mountPosition);
+      await _logService.saveLog(_rideUUID, _bike);
       _showSnackbar();
     }
   }
