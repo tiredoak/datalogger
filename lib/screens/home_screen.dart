@@ -156,64 +156,25 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Accelerometer Logger'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const ProfileScreen()),
-              );
-            },
+      body: Stack(
+        children: [
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : MapScreen(path: _path, initialPosition: _currentPosition),
+          Positioned(
+            bottom: 20,
+            left: 20,
+            right: 20,
+            child: ElevatedButton(
+              onPressed: _isRecording ? _stopRecording : _startCountdown,
+              style: ElevatedButton.styleFrom(
+                textStyle: const TextStyle(fontSize: 24),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(_isRecording ? 'Stop Recording' : 'Record'),
+            ),
           ),
         ],
-      ),
-      body: Center(
-        child: _isLoading
-            ? const CircularProgressIndicator()
-            : Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (_countdown > 0)
-                    Text(
-                      '$_countdown',
-                      style: const TextStyle(
-                        fontSize: 48,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  if (_isRecording)
-                    Expanded(
-                      child: MapScreen(path: _path, initialPosition: _currentPosition),
-                    ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: _isRecording ? _stopRecording : _startCountdown,
-                    style: ElevatedButton.styleFrom(
-                      textStyle: const TextStyle(fontSize: 48),
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 60, horizontal: 100),
-                    ),
-                    child: Text(_isRecording ? 'Stop Recording' : 'Record'),
-                  ),
-                  const SizedBox(height: 20),
-                  if (_isRecording)
-                    Column(
-                      children: [
-                        Text(
-                          'Street: $_street',
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                        Text(
-                          'City: $_city',
-                          style: const TextStyle(fontSize: 24),
-                        ),
-                      ],
-                    ),
-                ],
-              ),
       ),
     );
   }

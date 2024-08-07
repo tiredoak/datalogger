@@ -21,6 +21,11 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _mapController = MapController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialPosition != null) {
+        _mapController.move(widget.initialPosition!, 16.0);
+      }
+    });
   }
 
   @override
