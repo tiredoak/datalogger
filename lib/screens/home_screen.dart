@@ -1,6 +1,6 @@
 // lib/home_screen.dart
-import 'dart:async';
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:record_data/services/logging_service.dart';
@@ -10,6 +10,7 @@ import 'package:record_data/services/timer_service.dart';
 import 'package:record_data/services/location_service.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
 import 'package:record_data/widgets/map_screen.dart';
+import 'package:record_data/widgets/profile_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -34,6 +35,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String? _street = 'Unknown';
   String? _city = 'Unknown';
   final List<LatLng> _path = [];
+  LatLng? _currentPosition;
 
   String? _bike = 'Brompton';
   Timer? _locationTimer;
@@ -41,7 +43,12 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _checkPermissions();
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await _checkPermissions();
+    await _getCurrentLocation();
   }
 
   Future<void> _checkPermissions() async {
@@ -49,6 +56,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _sensorService = SensorService(_permissionService.getDeviceInfo());
       _isLoading = false;
+    });
+  }
+
+  Future<void> _getCurrentLocation() async {
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _currentPosition = LatLng(position.latitude, position.longitude);
     });
   }
 
@@ -144,6 +158,17 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Accelerometer Logger'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+        ],
       ),
       body: Center(
         child: _isLoading
@@ -161,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   if (_isRecording)
                     Expanded(
-                      child: MapScreen(path: _path),
+                      child: MapScreen(path: _path, initialPosition: _currentPosition),
                     ),
                   const SizedBox(height: 20),
                   ElevatedButton(

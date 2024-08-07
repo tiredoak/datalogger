@@ -6,22 +6,45 @@ import 'package:latlong2/latlong.dart';
 
 class MapScreen extends StatefulWidget {
   final List<LatLng> path;
+  final LatLng? initialPosition;
 
-  const MapScreen({super.key, required this.path});
+  const MapScreen({super.key, required this.path, this.initialPosition});
 
   @override
   _MapScreenState createState() => _MapScreenState();
 }
 
 class _MapScreenState extends State<MapScreen> {
+  late final MapController _mapController;
+
+  @override
+  void initState() {
+    super.initState();
+    _mapController = MapController();
+  }
+
+  @override
+  void didUpdateWidget(MapScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.path.isNotEmpty) {
+      _mapController.move(widget.path.last,
+          16.0); // Move the map to the last position with zoom level 16
+    } else if (widget.initialPosition != null) {
+      _mapController.move(widget.initialPosition!,
+          16.0); // Move the map to the initial position
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return FlutterMap(
+      mapController: _mapController,
       options: MapOptions(
-        center: widget.path.isNotEmpty
-            ? widget.path.last
-            : LatLng(38.71667, -9.13333), // Center on Lisbon
-        zoom: 13.0,
+        center: widget.initialPosition ??
+            LatLng(38.71667,
+                -9.13333), // Default to Lisbon if no position provided
+        zoom: 16.0, // Initial zoom level set to 16
+        interactiveFlags: InteractiveFlag.all,
       ),
       children: [
         TileLayer(

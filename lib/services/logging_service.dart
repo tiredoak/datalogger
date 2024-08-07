@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
+import 'package:latlong2/latlong.dart';
 
 class LoggingService {
   final List<Map<String, dynamic>> _logData = [];
@@ -26,20 +27,19 @@ class LoggingService {
     }
 
     String jsonString = jsonEncode(_logData);
-    await _writeJson(jsonString);
+    await _writeJson(jsonString, 'logdata_$rideUUID.json');
   }
 
   Future<void> saveStreetData(String rideUUID) async {
-    String timestamp = DateTime.now().millisecondsSinceEpoch.toString();
     List<Map<String, dynamic>> streetData = _uniqueStreets.map((e) {
       var data = jsonDecode(e);
       return {'uuid': rideUUID, 'street': data['street'], 'city': data['city']};
     }).toList();
     String jsonString = jsonEncode(streetData);
-    await _writeStreetJson(jsonString, timestamp);
+    await _writeJson(jsonString, 'streetdata_$rideUUID.json');
   }
 
-  Future<File> _localFileIos(String filename) async {
+  Future<File> _localFile(String filename) async {
     final directory = await getApplicationDocumentsDirectory();
     final dir = Directory('${directory.path}/ride_logs');
     if (!(await dir.exists())) {
@@ -48,27 +48,29 @@ class LoggingService {
     return File('${dir.path}/$filename');
   }
 
-  Future<File> _localFileAndroid(String filename) async {
-    Directory baseDir = Directory('/storage/emulated/0/Download');
-    final dir = Directory('${baseDir.path}/ride_logs');
-    if (!(await dir.exists())) {
-      await dir.create(recursive: true);
+  Future<void> _writeJson(String jsonString, String filename) async {
+    final file = await _localFile(filename);
+    await file.writeAsString(jsonString);
+  }
+
+  Future<List<List<LatLng>>> getAllRoutes() async {
+    final directory = await getApplicationDocumentsDirectory();
+    final dir = Directory('${directory.path}/ride_logs');
+    List<List<LatLng>> routes = [];
+
+    if (await dir.exists()) {
+      final files =
+          dir.listSync().where((item) => item.path.endsWith('logdata.json'));
+      for (var file in files) {
+        String content = await File(file.path).readAsString();
+        List<dynamic> jsonData = jsonDecode(content);
+        List<LatLng> route = jsonData.map((entry) {
+          return LatLng(entry['latitude'], entry['longitude']);
+        }).toList();
+        routes.add(route);
+      }
     }
-    return File('${dir.path}/$filename');
-  }
-
-  Future<void> _writeJson(String jsonString) async {
-    final file = await (Platform.isIOS
-        ? _localFileIos('logdata.json')
-        : _localFileAndroid('logdata.json'));
-    await file.writeAsString(jsonString);
-  }
-
-  Future<void> _writeStreetJson(String jsonString, String timestamp) async {
-    final file = await (Platform.isIOS
-        ? _localFileIos('streetdata_$timestamp.json')
-        : _localFileAndroid('streetdata_$timestamp.json'));
-    await file.writeAsString(jsonString);
+    return routes;
   }
 
   int get uniqueStreetsCount => _uniqueStreets.length;
