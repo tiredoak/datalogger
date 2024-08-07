@@ -1,4 +1,6 @@
+// lib/home_screen.dart
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:record_data/services/logging_service.dart';
@@ -6,8 +8,10 @@ import 'package:record_data/services/permission_service.dart';
 import 'package:record_data/services/sensor_service.dart';
 import 'package:record_data/services/timer_service.dart';
 import 'package:record_data/services/location_service.dart';
-import 'package:uuid/uuid.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
+import 'package:record_data/widgets/map_screen.dart';
+import 'package:uuid/uuid.dart';
+import 'package:latlong2/latlong.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _rideUUID = const Uuid().v4();
   String? _street = 'Unknown';
   String? _city = 'Unknown';
+  final List<LatLng> _path = [];
 
   String? _bike = 'Brompton';
   Timer? _locationTimer;
@@ -69,6 +74,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _isRecording = true;
       _logService.clearLog();
       _rideUUID = const Uuid().v4();
+      _path.clear();
     });
 
     _timerService.startTimer((elapsedSeconds) {
@@ -94,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _street = locationData['street'];
           _city = locationData['city'];
+          _path.add(LatLng(position.latitude, position.longitude));
         });
         _logService.logStreetData(_street!, _city!);
       } catch (e) {
@@ -153,11 +160,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   if (_isRecording)
-                    Text(
-                      'Elapsed time: ${_timerService.elapsedSeconds} s',
-                      style: const TextStyle(
-                        fontSize: 24,
-                      ),
+                    Expanded(
+                      child: MapScreen(path: _path),
                     ),
                   const SizedBox(height: 20),
                   ElevatedButton(
