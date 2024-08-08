@@ -27,7 +27,9 @@ class LoggingService {
     }
 
     String jsonString = jsonEncode(_logData);
-    await _writeJson(jsonString, 'logdata_$rideUUID.json');
+    String timestamp =
+        DateTime.now().toIso8601String().replaceAll(RegExp(r'[-:.]'), '');
+    await _writeJson(jsonString, 'rides/sensors_$timestamp.json');
   }
 
   Future<void> saveStreetData(String rideUUID) async {
@@ -36,16 +38,23 @@ class LoggingService {
       return {'uuid': rideUUID, 'street': data['street'], 'city': data['city']};
     }).toList();
     String jsonString = jsonEncode(streetData);
-    await _writeJson(jsonString, 'streetdata_$rideUUID.json');
+    String timestamp =
+        DateTime.now().toIso8601String().replaceAll(RegExp(r'[-:.]'), '');
+    await _writeJson(jsonString, 'streets/streets_${rideUUID}_$timestamp.json');
   }
 
   Future<File> _localFile(String filename) async {
     final directory = await getApplicationDocumentsDirectory();
-    final dir = Directory('${directory.path}/ride_logs');
+    final subDir = filename.startsWith('rides/')
+        ? 'rides'
+        : filename.startsWith('streets/')
+            ? 'streets'
+            : '';
+    final dir = Directory('${directory.path}/ride_logs/$subDir');
     if (!(await dir.exists())) {
       await dir.create(recursive: true);
     }
-    return File('${dir.path}/$filename');
+    return File('${dir.path}/${filename.split('/').last}');
   }
 
   Future<void> _writeJson(String jsonString, String filename) async {
@@ -55,12 +64,11 @@ class LoggingService {
 
   Future<List<List<LatLng>>> getAllRoutes() async {
     final directory = await getApplicationDocumentsDirectory();
-    final dir = Directory('${directory.path}/ride_logs');
+    final dir = Directory('${directory.path}/ride_logs/rides');
     List<List<LatLng>> routes = [];
 
     if (await dir.exists()) {
-      final files =
-          dir.listSync().where((item) => item.path.endsWith('logdata.json'));
+      final files = dir.listSync().where((item) => item.path.endsWith('.json'));
       for (var file in files) {
         String content = await File(file.path).readAsString();
         List<dynamic> jsonData = jsonDecode(content);
