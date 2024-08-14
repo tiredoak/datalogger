@@ -1,5 +1,3 @@
-// lib/widgets/map_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -32,11 +30,9 @@ class _MapScreenState extends State<MapScreen> {
   void didUpdateWidget(MapScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.path.isNotEmpty) {
-      _mapController.move(widget.path.last,
-          16.0); // Move the map to the last position with zoom level 16
+      _mapController.move(widget.path.last, 16.0);
     } else if (widget.initialPosition != null) {
-      _mapController.move(widget.initialPosition!,
-          16.0); // Move the map to the initial position
+      _mapController.move(widget.initialPosition!, 16.0);
     }
   }
 
@@ -66,20 +62,30 @@ class _MapScreenState extends State<MapScreen> {
           ],
         ),
         MarkerLayer(
-          markers: widget.path.isNotEmpty
-              ? [
-                  Marker(
-                    point: widget.path.last,
-                    builder: (ctx) => Container(
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40.0,
-                      ),
-                    ),
+          markers: [
+            if (widget.initialPosition != null)
+              Marker(
+                point: widget.initialPosition!,
+                builder: (ctx) => Container(
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 40.0,
                   ),
-                ]
-              : [],
+                ),
+              ),
+            if (widget.path.isNotEmpty)
+              Marker(
+                point: widget.path.last,
+                builder: (ctx) => Container(
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 40.0,
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );

@@ -47,6 +47,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _initialize() async {
     await _checkPermissions();
     await _getCurrentLocation();
+    setState(() {
+      _isLoading = false;
+    });
   }
 
   Future<void> _checkPermissions() async {
@@ -158,7 +161,10 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _isLoading
               ? const Center(child: CircularProgressIndicator())
-              : MapScreen(path: _path, initialPosition: _currentPosition),
+              : MapScreen(
+                  path: _path,
+                  initialPosition: _currentPosition, // Pass the current position
+                ),
           Positioned(
             bottom: 20,
             left: 20,
