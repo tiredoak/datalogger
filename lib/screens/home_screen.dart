@@ -8,9 +8,9 @@ import 'package:record_data/services/timer_service.dart';
 import 'package:record_data/services/location_service.dart';
 import 'package:record_data/widgets/rating_dialog.dart';
 import 'package:record_data/widgets/map_screen.dart';
-import 'package:record_data/widgets/profile_screen.dart';
 import 'package:uuid/uuid.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart'; // Import flutter_map package
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String? _bike = 'Brompton';
   Timer? _locationTimer;
+  final MapController _mapController = MapController(); // Initialize MapController directly
 
   @override
   void initState() {
@@ -115,7 +116,8 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _street = locationData['street'];
           _city = locationData['city'];
-          _path.add(LatLng(position.latitude, position.longitude));
+          _currentPosition = LatLng(position.latitude, position.longitude);
+          _path.add(_currentPosition!);
         });
         _logService.logStreetData(_street!, _city!);
       } catch (e) {
@@ -154,6 +156,12 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _recenterMap() {
+    if (_currentPosition != null) {
+      _mapController.move(_currentPosition!, 16.0);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -163,7 +171,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ? const Center(child: CircularProgressIndicator())
               : MapScreen(
                   path: _path,
-                  initialPosition: _currentPosition, // Pass the current position
+                  initialPosition: _currentPosition,
+                  mapController: _mapController,
                 ),
           Positioned(
             bottom: 20,
@@ -179,6 +188,10 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _recenterMap,
+        child: const Icon(Icons.my_location),
       ),
     );
   }
